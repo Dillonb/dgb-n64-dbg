@@ -1,0 +1,13 @@
+Status {
+  height: 100%;
+}
+
+Disassembly {
+    width: auto;
+    height: 100%;
+}
+
+Registers {
+    width: auto;
+    height: auto;
+}
