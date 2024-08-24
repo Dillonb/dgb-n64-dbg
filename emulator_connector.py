@@ -6,7 +6,7 @@ class EmulatorConnector():
     def __init__(self, port):
         self.port = port
 
-    def registers(self):
+    def registers(self) -> dict[str, int]:
         r = requests.get(f"http://localhost:{self.port}/registers")
         if r.status_code == 200:
             return r.json()

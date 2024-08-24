@@ -3,11 +3,15 @@ Status {
 }
 
 Disassembly {
-    width: auto;
-    height: 100%;
+    width: 1fr;
+    height: 1fr;
+    border: heavy white;
+    padding: 1;
 }
 
 Registers {
     width: auto;
     height: auto;
+    border: heavy white;
+    padding: 1;
 }
