@@ -45,3 +45,18 @@ Registers {
   border: heavy white;
   padding-right: 1;
 }
+
+GoToAddressScreen {
+  align: center middle;
+}
+
+#goto_address_dialog {
+    grid-size: 1;
+    grid-gutter: 1 2;
+    grid-rows: 1fr 3;
+    padding: 0 1;
+    width: 60;
+    height: 11;
+    border: thick $background 80%;
+    background: $surface;
+}

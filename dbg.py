@@ -2,13 +2,16 @@
 from rich.segment import Segment
 from rich.style import Style
 from rich.theme import Theme
+from textual import on
 from textual.app import App, ComposeResult
+from textual.containers import Grid
+from textual.screen import Screen, ModalScreen
 from textual.widget import Widget
 from textual.scroll_view import ScrollView
 from textual.geometry import Size
-from textual.widgets import Header, Footer, Static, Button
+from textual.widgets import Header, Footer, Static, Button, Label, Input
 from textual.reactive import reactive
-from textual.events import Click
+from textual.events import Click, Key
 from textual.strip import Strip
 
 from emulator_connector import EmulatorConnector
@@ -34,7 +37,7 @@ class Registers(Widget):
         for key, value in self.registers.items():
             if key not in self.gprs and key not in self.hidden:
                 text += f"[gruv_green]{key}[/]: {hex(value)}\n"
-        return text
+        return text.strip()
 
 class Disassembly(ScrollView):
     pc: reactive[int] = reactive(0)
@@ -189,6 +192,29 @@ class Status(Static):
         self.update_state()
         self.query_one(Disassembly).scroll_to_pc_if_needed()
 
+class GoToAddressScreen(ModalScreen):
+    def __init__(self, jump_to):
+        super().__init__()
+        self.jump_to = jump_to
+
+    def compose(self) -> ComposeResult:
+        yield Grid(
+                Input(placeholder="Address", id="address_input", restrict=r"[a-fA-F0-9]{1,16}"),
+                id = "goto_address_dialog"
+                )
+    @on(Input.Submitted)
+    def jump(self, event: Input.Submitted):
+        try:
+            self.jump_to(int(event.value, 16))
+            self.app.pop_screen()
+        except Exception as e:
+            self.notify(f"Error: {e}")
+
+
+    def on_key(self, key: Key):
+        if key.key == "escape":
+            self.app.pop_screen()
+
 class DebuggerApp(App):
     CSS_PATH = "dbg.tcss"
     BINDINGS = [
@@ -197,7 +223,8 @@ class DebuggerApp(App):
         ("b", "break", "Break"),
         ("q", "quit", "Quit Debugger"),
         ("x", "quit_emulator", "Quit Emulator"),
-        ("p", "jump_to_pc", "Jump to PC"),
+        ("g", "go_to_address", "Go to Address"),
+        ("p", "go_to_pc", "Go to PC"),
     ]
     def on_mount(self):
         # push a theme to the Apps console
@@ -243,11 +270,14 @@ class DebuggerApp(App):
         except Exception as e:
             self.notify(f"Failed to break: {e}")
 
-    def action_jump_to_pc(self) -> None:
+    def action_go_to_address(self) -> None:
+        self.push_screen(GoToAddressScreen(self.query_one(Disassembly).scroll_to_address_if_needed))
+
+    def action_go_to_pc(self) -> None:
         try:
             self.query_one(Disassembly).scroll_to_pc_if_needed()
         except Exception as e:
-            self.notify(f"Failed to jump to PC: {e}")
+            self.notify(f"Failed to go to PC: {e}")
 
 def main():
     app = DebuggerApp()
