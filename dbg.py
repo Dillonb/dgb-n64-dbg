@@ -176,14 +176,6 @@ class Status(Static):
         self.update_state()
         self.query_one(Disassembly).scroll_to_pc_if_needed()
 
-
-class Controls(Static):
-    def compose(self) -> ComposeResult:
-        yield Button("Step", id="step", variant="success")
-        yield Button("Continue", id="continue", variant="success")
-        yield Button("Break", id="break", variant="error")
-
-
 class DebuggerApp(App):
     CSS_PATH = "dbg.tcss"
     BINDINGS = [
@@ -199,7 +191,6 @@ class DebuggerApp(App):
         """Create child widgets for the app."""
         yield Header()
         yield Footer()
-        # yield Controls()
         yield Status()
 
     def action_quit_emulator(self) -> None:
