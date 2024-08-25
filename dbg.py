@@ -249,6 +249,9 @@ class DebuggerApp(App):
         except Exception as e:
             self.notify(f"Failed to jump to PC: {e}")
 
-if __name__ == "__main__":
+def main():
     app = DebuggerApp()
     app.run()
+
+if __name__ == "__main__":
+    main()
