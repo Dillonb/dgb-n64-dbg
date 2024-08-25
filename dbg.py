@@ -17,12 +17,20 @@ md = Cs(CS_ARCH_MIPS, CS_MODE_MIPS64 + CS_MODE_BIG_ENDIAN)
 emu = EmulatorConnector(8123)
 
 class Registers(Widget):
+    gprs = [ "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+             "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra" ];
+
     registers: reactive[dict[str, int]] = reactive({})
 
     def render(self) -> str:
         text = ""
+        for name in self.gprs:
+            if name in self.registers.keys():
+                text += f"{name}: {hex(self.registers[name])}\n"
+        text += "\n\n"
         for key, value in self.registers.items():
-            text += f"{key}: {hex(value)}\n"
+            if key not in self.gprs:
+                text += f"{key}: {hex(value)}\n"
         return text
 
 class Disassembly(ScrollView):
