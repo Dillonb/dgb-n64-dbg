@@ -3,26 +3,43 @@ Status {
 }
 
 Disassembly {
-    width: 1fr;
-    height: 1fr;
-    border: heavy white;
+  width: 1fr;
+  height: 1fr;
+  border: heavy white;
+  background: #282828;
+}
+
+Disassembly .inactive-line {
+  background: #282828;
+}
+
+Disassembly .active-line {
+  background: #504945;
 }
 
 Disassembly .address {
-  color: white;
+  color: #b8bb26;
 }
 
 Disassembly .instruction-word {
-  color: brown;
+  color: #a89984;
 }
 
-Disassembly .instruction-disassembly {
-  color: brown;
+Disassembly .instruction-disasm-instr {
+  color: #d79921;
+}
+
+Disassembly .instruction-disasm-args {
+  color: #ebdbb2;
+}
+
+Disassembly .other-segment {
+  color: #ebdbb2;
 }
 
 Registers {
-    width: auto;
-    height: auto;
-    border: heavy white;
-    padding-right: 1;
+  width: auto;
+  height: auto;
+  border: heavy white;
+  padding-right: 1;
 }

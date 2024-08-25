@@ -38,7 +38,11 @@ class Disassembly(ScrollView):
     COMPONENT_CLASSES = {
         "address",
         "instruction-word",
-        "instruction-disasm",
+        "instruction-disasm-instr",
+        "instruction-disasm-args",
+        "other-segment",
+        "active-line",
+        "inactive-line"
     }
 
     def __init__(self, mode = 32):
@@ -82,31 +86,59 @@ class Disassembly(ScrollView):
         _, scroll_y = self.scroll_offset
         address = (y + scroll_y) << 2
 
-        address_style = self.get_component_rich_style("address")
-        iw_style = self.get_component_rich_style("instruction-word")
-        disasm_style = self.get_component_rich_style("instruction-disasm")
+        active = address == (self.pc & self.addr_mask)
+        active_text = "active" if active else "inactive"
+
+        line_style = self.get_component_rich_style(f"{active_text}-line")
+
+        address_style = self.get_component_rich_style(f"address")
+        iw_style = self.get_component_rich_style(f"instruction-word")
+        disasm_instr_style = self.get_component_rich_style(f"instruction-disasm-instr")
+        disasm_args_style = self.get_component_rich_style(f"instruction-disasm-args")
+        other_segment_style = self.get_component_rich_style(f"other-segment")
+
+        def with_style(segment, style) -> Segment:
+            for s in Segment.apply_style([segment], style, line_style.background_style):
+                return s
+            raise Exception("Failed to apply style to segment")
 
         bp_text = self.no_bp
         if address in self.breakpoints:
             bp_text = self.bp
 
-        segments = [Segment(("{} {:08X}" if self.mode == 32 else "{:016X}").format(bp_text, address), address_style)]
-        segments.append(Segment(" -> " if address == (self.pc & self.addr_mask) else "    "))
+        arrow_text = "🠶" if active else " "
 
+        segments = [with_style(Segment(f"{bp_text}{arrow_text} "), other_segment_style)]
+        segments.append(with_style(Segment(("{:08X}" if self.mode == 32 else "{:016X}").format(address)), address_style))
+        segments.append(with_style(Segment("   "), other_segment_style))
+
+        iw_text = ""
+        disasm_instr_text = ""
+        disasm_args_text = ""
         try:
             instr = int("0x" + emu.read_word(address), 16)
             instr_bytes = instr.to_bytes(4, "big")
             disasm = []
             for i in md.disasm(instr_bytes, address & self.addr_mask):
-                disasm.append(f"{i.mnemonic} {i.op_str}")
+                disasm.append([f"{i.mnemonic}", f"{i.op_str}"])
 
-            segments.append(Segment("{:08X}".format(instr), iw_style))
+            iw_text = "{:08X}".format(instr)
             if len(disasm) != 1:
-                segments.append(Segment(f"ERROR: len = {len(disasm)}"))
+                disasm_instr_text = f"    ERROR: len = {len(disasm)}"
             else:
-                segments.append(Segment("\t" + disasm[0], disasm_style))
+                disasm_instr_text = "    " + disasm[0][0].ljust(10, ' ')
+                disasm_args_text  = disasm[0][1]
         except Exception:
-            segments.append(Segment("ERROR"))
+            iw_text = "ERROR"
+            disasm_text = ""
+
+        segments.append(with_style(Segment(iw_text), iw_style))
+        segments.append(with_style(Segment(disasm_instr_text), disasm_instr_style))
+        segments.append(with_style(Segment(disasm_args_text), disasm_args_style))
+        width = sum([len(segment.text) for segment in segments])
+
+        if width > self.virtual_size.width:
+            self.virtual_size = self.virtual_size.with_width(width)
 
         return Strip(segments)
 
@@ -150,7 +182,6 @@ class Controls(Static):
 class DebuggerApp(App):
     CSS_PATH = "dbg.tcss"
     BINDINGS = [
-        ("d", "toggle_dark", "Toggle dark mode"),
         ("s", "step", "Step"),
         ("c", "continue", "Continue"),
         ("b", "break", "Break"),
@@ -165,10 +196,6 @@ class DebuggerApp(App):
         yield Footer()
         # yield Controls()
         yield Status()
-
-    def action_toggle_dark(self) -> None:
-        """An action to toggle dark mode."""
-        self.dark = not self.dark
 
     def action_quit_emulator(self) -> None:
         try:
