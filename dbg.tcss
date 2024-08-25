@@ -6,12 +6,23 @@ Disassembly {
     width: 1fr;
     height: 1fr;
     border: heavy white;
-    padding: 1;
+}
+
+Disassembly .address {
+  color: white;
+}
+
+Disassembly .instruction-word {
+  color: brown;
+}
+
+Disassembly .instruction-disassembly {
+  color: brown;
 }
 
 Registers {
     width: auto;
     height: auto;
     border: heavy white;
-    padding: 1;
+    padding-right: 1;
 }
