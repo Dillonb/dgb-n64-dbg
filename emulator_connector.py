@@ -66,6 +66,14 @@ class EmulatorConnector():
         requests.get(f"http://localhost:{self.port}/control/break")
         self.__on_update()
 
+    def state(self):
+        r = requests.get(f"http://localhost:{self.port}/control/state")
+        if r.status_code == 200:
+            return r.json()
+        else:
+            raise Exception(f"Failed to retrieve emulator state: {r.status_code}")
+
+
     def read_word(self, address):
         url = f"http://localhost:{self.port}/read/word/{hex(address)}"
         r = requests.get(url)

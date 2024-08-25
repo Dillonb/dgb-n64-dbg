@@ -27,22 +27,34 @@ class Registers(Widget):
     hidden = { "zero" }
 
     registers: reactive[dict[str, int]] = reactive({})
+    state: reactive[dict] = reactive({})
 
     def render(self) -> str:
         text = ""
         for name in self.gprs:
             if name in self.registers.keys():
-                text += f"[gruv_green]{name}[/]: {hex(self.registers[name])}\n"
+
+                text += f"[gruv_green]{name}[/]: "
+                if self.state["running"]:
+                    text += "[i]Emulator running[/]\n"
+                else:
+                    text += f"{hex(self.registers[name])}\n"
+
         text += "\n\n"
         for key, value in self.registers.items():
             if key not in self.gprs and key not in self.hidden:
-                text += f"[gruv_green]{key}[/]: {hex(value)}\n"
+                text += f"[gruv_green]{key}[/]: "
+                if self.state["running"]:
+                    text += "[i]Emulator running[/]\n"
+                else:
+                    text += f"{hex(value)}\n"
         return text.strip()
 
 class Disassembly(ScrollView):
     pc: reactive[int] = reactive(0)
     breakpoints: reactive[set[int]] = reactive(set())
     registers: reactive[dict[str, int]] = reactive({})
+    state: reactive[dict] = reactive({})
     mode: int
     addr_mask: int
 
@@ -101,7 +113,7 @@ class Disassembly(ScrollView):
         scroll_x, scroll_y = self.scroll_offset
         address = (y + scroll_y) << 2
 
-        active = address == (self.pc & self.addr_mask)
+        active = address == (self.pc & self.addr_mask) and not self.state["running"]
         active_text = "active" if active else "inactive"
 
         line_style = self.get_component_rich_style(f"{active_text}-line").background_style
@@ -148,10 +160,11 @@ class Disassembly(ScrollView):
         segments.append(Segment(disasm_args_text.ljust(25), disasm_args_style))
 
         reg_values = []
-        for reg in disasm_args_text.split(", "):
-            for reg_name in self.registers.keys():
-                if f"${reg_name}" in reg:
-                    reg_values.append(f"{reg_name} = {hex(self.registers[reg_name])}")
+        if not self.state["running"]:
+            for reg in disasm_args_text.split(", "):
+                for reg_name in self.registers.keys():
+                    if f"${reg_name}" in reg:
+                        reg_values.append(f"{reg_name} = {hex(self.registers[reg_name])}")
 
 
         segments.append(Segment(", ".join(reg_values), iw_style))
@@ -172,6 +185,7 @@ class Status(Static):
         try:
             registers = emu.registers()
             breakpoints = emu.breakpoints()
+            state = emu.state()
 
             addr_mask = self.query_one(Disassembly).addr_mask
 
@@ -180,9 +194,11 @@ class Status(Static):
                 breakpoints_set.add(breakpoint["address"] & addr_mask)
 
             self.query_one(Registers).registers = registers
+            self.query_one(Registers).state = state
             self.query_one(Disassembly).registers = registers
             self.query_one(Disassembly).pc = registers["pc"]
             self.query_one(Disassembly).breakpoints = breakpoints_set
+            self.query_one(Disassembly).state = state
 
         except Exception as e:
             self.notify(f"Error updating state! {e}")
@@ -219,16 +235,15 @@ class DebuggerApp(App):
     CSS_PATH = "dbg.tcss"
     BINDINGS = [
         ("s", "step", "Step"),
-        ("c", "continue", "Continue"),
-        ("b", "break", "Break"),
+        ("c", "break_continue", "Continue/Break"),
+        ("b", "breakpoints", "Breakpoints"),
         ("q", "quit", "Quit Debugger"),
         ("x", "quit_emulator", "Quit Emulator"),
         ("g", "go_to_address", "Go to Address"),
         ("p", "go_to_pc", "Go to PC"),
     ]
     def on_mount(self):
-        # push a theme to the Apps console
-        # then you can use these for styling Text in the datatable cells
+        # For use in rich text
         self.console.push_theme(
                 Theme({
                         "gruv_red": "#fb4934",
@@ -257,18 +272,18 @@ class DebuggerApp(App):
             self.notify(f"Failed to step: {e}")
 
 
-    def action_continue(self) -> None:
+    def action_break_continue(self) -> None:
         try:
-            emu.cont()
+            if emu.state()["running"]:
+                emu.brk();
+                self.query_one(Disassembly).scroll_to_address_if_needed(emu.registers()["pc"])
+            else:
+                emu.cont()
         except Exception as e:
-            self.notify(f"Failed to continue: {e}")
+            self.notify(f"Failed to break/continue: {e}")
 
-    def action_break(self) -> None:
-        try:
-            emu.brk()
-            self.query_one(Disassembly).scroll_to_pc_if_needed()
-        except Exception as e:
-            self.notify(f"Failed to break: {e}")
+    def action_breakpoints(self) -> None:
+        pass # Todo
 
     def action_go_to_address(self) -> None:
         self.push_screen(GoToAddressScreen(self.query_one(Disassembly).scroll_to_address_if_needed))
