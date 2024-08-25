@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from rich.segment import Segment
 from rich.style import Style
+from rich.theme import Theme
 from textual.app import App, ComposeResult
 from textual.widget import Widget
 from textual.scroll_view import ScrollView
@@ -27,11 +28,11 @@ class Registers(Widget):
         text = ""
         for name in self.gprs:
             if name in self.registers.keys():
-                text += f"{name}: {hex(self.registers[name])}\n"
+                text += f"[gruv_green]{name}[/]: {hex(self.registers[name])}\n"
         text += "\n\n"
         for key, value in self.registers.items():
             if key not in self.gprs:
-                text += f"{key}: {hex(value)}\n"
+                text += f"[gruv_green]{key}[/]: {hex(value)}\n"
         return text
 
 class Disassembly(ScrollView):
@@ -186,6 +187,16 @@ class DebuggerApp(App):
         ("x", "quit_emulator", "Quit Emulator"),
         ("p", "jump_to_pc", "Jump to PC"),
     ]
+    def on_mount(self):
+        # push a theme to the Apps console
+        # then you can use these for styling Text in the datatable cells
+        self.console.push_theme(
+                Theme({
+                        "gruv_red": "#fb4934",
+                        "gruv_green": "#b8bb26"
+                    })
+                )
+
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
