@@ -19,8 +19,9 @@ md = Cs(CS_ARCH_MIPS, CS_MODE_MIPS64 + CS_MODE_BIG_ENDIAN)
 emu = EmulatorConnector(8123)
 
 class Registers(Widget):
-    gprs = [ "zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
+    gprs = [ "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7",
              "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra" ];
+    hidden = { "zero" }
 
     registers: reactive[dict[str, int]] = reactive({})
 
@@ -31,13 +32,14 @@ class Registers(Widget):
                 text += f"[gruv_green]{name}[/]: {hex(self.registers[name])}\n"
         text += "\n\n"
         for key, value in self.registers.items():
-            if key not in self.gprs:
+            if key not in self.gprs and key not in self.hidden:
                 text += f"[gruv_green]{key}[/]: {hex(value)}\n"
         return text
 
 class Disassembly(ScrollView):
     pc: reactive[int] = reactive(0)
     breakpoints: reactive[set[int]] = reactive(set())
+    registers: reactive[dict[str, int]] = reactive({})
     mode: int
     addr_mask: int
 
@@ -140,7 +142,16 @@ class Disassembly(ScrollView):
 
         segments.append(Segment(iw_text, iw_style))
         segments.append(Segment(disasm_instr_text, disasm_instr_style))
-        segments.append(Segment(disasm_args_text, disasm_args_style))
+        segments.append(Segment(disasm_args_text.ljust(25), disasm_args_style))
+
+        reg_values = []
+        for reg in disasm_args_text.split(", "):
+            for reg_name in self.registers.keys():
+                if f"${reg_name}" in reg:
+                    reg_values.append(f"{reg_name} = {hex(self.registers[reg_name])}")
+
+
+        segments.append(Segment(", ".join(reg_values), iw_style))
         width = sum([len(segment.text) for segment in segments])
 
         if width > self.virtual_size.width:
@@ -166,6 +177,7 @@ class Status(Static):
                 breakpoints_set.add(breakpoint["address"] & addr_mask)
 
             self.query_one(Registers).registers = registers
+            self.query_one(Disassembly).registers = registers
             self.query_one(Disassembly).pc = registers["pc"]
             self.query_one(Disassembly).breakpoints = breakpoints_set
 
