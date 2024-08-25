@@ -27,11 +27,13 @@ class Registers(Widget):
 
 class Disassembly(ScrollView):
     pc: reactive[int] = reactive(0)
+    breakpoints: reactive[set[int]] = reactive(set())
     mode: int
     addr_mask: int
 
     bp = "🔴"
     muted_bp = "⭕"
+    no_bp    = "  " # Two spaces since both above chars are double width?
 
     COMPONENT_CLASSES = {
         "address",
@@ -71,8 +73,10 @@ class Disassembly(ScrollView):
         _, scroll_y = self.scroll_offset
         address = scroll_y + click.y - 1
         address <<= 2
-        if click.x <= 8: # Only if you click on the address
-            self.notify(f"{hex(address)} {click.x}")
+        if address in self.breakpoints:
+            emu.clear_breakpoint(address)
+        else:
+            emu.set_breakpoint(address)
 
     def render_line(self, y: int) -> Strip:
         _, scroll_y = self.scroll_offset
@@ -82,7 +86,11 @@ class Disassembly(ScrollView):
         iw_style = self.get_component_rich_style("instruction-word")
         disasm_style = self.get_component_rich_style("instruction-disasm")
 
-        segments = [Segment(("{:08X}" if self.mode == 32 else "{:016X}").format(address), address_style)]
+        bp_text = self.no_bp
+        if address in self.breakpoints:
+            bp_text = self.bp
+
+        segments = [Segment(("{} {:08X}" if self.mode == 32 else "{:016X}").format(bp_text, address), address_style)]
         segments.append(Segment(" -> " if address == (self.pc & self.addr_mask) else "    "))
 
         try:
@@ -111,8 +119,17 @@ class Status(Static):
     def update_state(self) -> None:
         try:
             registers = emu.registers()
+            breakpoints = emu.breakpoints()
+
+            addr_mask = self.query_one(Disassembly).addr_mask
+
+            breakpoints_set = set()
+            for breakpoint in breakpoints:
+                breakpoints_set.add(breakpoint["address"] & addr_mask)
+
             self.query_one(Registers).registers = registers
             self.query_one(Disassembly).pc = registers["pc"]
+            self.query_one(Disassembly).breakpoints = breakpoints_set
 
         except Exception as e:
             self.notify(f"Error updating state! {e}")

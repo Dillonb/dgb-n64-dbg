@@ -1,6 +1,9 @@
 import requests
 import time
 
+def process_breakpoint_result(breakpoints):
+            return [{"address": int(bp["address"], 16), "muted": bp["muted"]} for bp in breakpoints]
+
 class EmulatorConnector():
     on_update_handlers = []
     def __init__(self, port):
@@ -12,6 +15,32 @@ class EmulatorConnector():
             return r.json()
         else:
             raise Exception(f"Failed to get registers: {r.status_code}")
+
+    def breakpoints(self) -> list[dict[str, int]]:
+        r = requests.get(f"http://localhost:{self.port}/breakpoints")
+        if r.status_code == 200:
+            return process_breakpoint_result(r.json())
+        else:
+            raise Exception(f"Failed to get breakpoints: {r.status_code}")
+
+    def set_breakpoint(self, address) -> list[dict[str, int]]:
+        r = requests.get(f"http://localhost:{self.port}/breakpoints/set/{hex(address)}")
+        if r.status_code == 200:
+            result = process_breakpoint_result(r.json())
+            self.__on_update()
+            return result;
+        else:
+            raise Exception(f"Failed to set breakpoint: {r.status_code}")
+
+    def clear_breakpoint(self, address) -> list[dict[str, int | bool]]:
+        r = requests.get(f"http://localhost:{self.port}/breakpoints/clear/{hex(address)}")
+        if r.status_code == 200:
+            result = process_breakpoint_result(r.json())
+            self.__on_update()
+            return result
+        else:
+            raise Exception(f"Failed to clear breakpoint: {r.status_code}")
+
 
     def register_on_update_handler(self, handler):
         self.on_update_handlers.append(handler)
