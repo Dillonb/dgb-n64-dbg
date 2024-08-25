@@ -98,7 +98,7 @@ class Disassembly(ScrollView):
             emu.set_breakpoint(address)
 
     def render_line(self, y: int) -> Strip:
-        _, scroll_y = self.scroll_offset
+        scroll_x, scroll_y = self.scroll_offset
         address = (y + scroll_y) << 2
 
         active = address == (self.pc & self.addr_mask)
@@ -160,7 +160,7 @@ class Disassembly(ScrollView):
         if width > self.virtual_size.width:
             self.virtual_size = self.virtual_size.with_width(width)
 
-        return Strip(segments)
+        return Strip(segments).crop(scroll_x)
 
 class Status(Static):
     def compose(self) -> ComposeResult:
