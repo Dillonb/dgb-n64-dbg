@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from rich.segment import Segment
+from rich.style import Style
 from textual.app import App, ComposeResult
 from textual.widget import Widget
 from textual.scroll_view import ScrollView
@@ -97,18 +98,13 @@ class Disassembly(ScrollView):
         active = address == (self.pc & self.addr_mask)
         active_text = "active" if active else "inactive"
 
-        line_style = self.get_component_rich_style(f"{active_text}-line")
+        line_style = self.get_component_rich_style(f"{active_text}-line").background_style
 
-        address_style = self.get_component_rich_style(f"address")
-        iw_style = self.get_component_rich_style(f"instruction-word")
-        disasm_instr_style = self.get_component_rich_style(f"instruction-disasm-instr")
-        disasm_args_style = self.get_component_rich_style(f"instruction-disasm-args")
-        other_segment_style = self.get_component_rich_style(f"other-segment")
-
-        def with_style(segment, style) -> Segment:
-            for s in Segment.apply_style([segment], style, line_style.background_style):
-                return s
-            raise Exception("Failed to apply style to segment")
+        address_style = Style.combine([self.get_component_rich_style(f"address"), line_style])
+        iw_style = Style.combine([self.get_component_rich_style(f"instruction-word"), line_style])
+        disasm_instr_style = Style.combine([self.get_component_rich_style(f"instruction-disasm-instr"), line_style])
+        disasm_args_style = Style.combine([self.get_component_rich_style(f"instruction-disasm-args"), line_style])
+        other_segment_style = Style.combine([self.get_component_rich_style(f"other-segment"), line_style])
 
         bp_text = self.no_bp
         if address in self.breakpoints:
@@ -116,9 +112,9 @@ class Disassembly(ScrollView):
 
         arrow_text = "🠶" if active else " "
 
-        segments = [with_style(Segment(f"{bp_text}{arrow_text} "), other_segment_style)]
-        segments.append(with_style(Segment(("{:08X}" if self.mode == 32 else "{:016X}").format(address)), address_style))
-        segments.append(with_style(Segment("   "), other_segment_style))
+        segments = [Segment(f"{bp_text}{arrow_text} ", other_segment_style)]
+        segments.append(Segment(("{:08X}" if self.mode == 32 else "{:016X}").format(address), address_style))
+        segments.append(Segment("   ", other_segment_style))
 
         iw_text = ""
         disasm_instr_text = ""
@@ -138,11 +134,12 @@ class Disassembly(ScrollView):
                 disasm_args_text  = disasm[0][1]
         except Exception:
             iw_text = "ERROR"
-            disasm_text = ""
+            disasm_instr_text = ""
+            disasm_args_text = ""
 
-        segments.append(with_style(Segment(iw_text), iw_style))
-        segments.append(with_style(Segment(disasm_instr_text), disasm_instr_style))
-        segments.append(with_style(Segment(disasm_args_text), disasm_args_style))
+        segments.append(Segment(iw_text, iw_style))
+        segments.append(Segment(disasm_instr_text, disasm_instr_style))
+        segments.append(Segment(disasm_args_text, disasm_args_style))
         width = sum([len(segment.text) for segment in segments])
 
         if width > self.virtual_size.width:

@@ -1,5 +1,7 @@
 Status {
   height: 100%;
+  background: #282828;
+  color: #ebdbb2;
 }
 
 Disassembly {
