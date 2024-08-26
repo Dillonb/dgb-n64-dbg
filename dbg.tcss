@@ -97,3 +97,12 @@ BreakpointLine {
 #address_input {
   margin-bottom: 1;
 }
+
+* {
+  scrollbar-background: #3c3836;
+  scrollbar-background-active: #504945;
+  scrollbar-background-hover: #665c54;
+  scrollbar-color: #a89984;
+  scrollbar-color-active: #bdae93;
+  scrollbar-color-hover: #d5c4a1;
+}
