@@ -23,7 +23,7 @@ class EmulatorConnector():
         else:
             raise Exception(f"Failed to get breakpoints: {r.status_code}")
 
-    def set_breakpoint(self, address) -> list[dict[str, int]]:
+    def set_breakpoint(self, address: int) -> list[dict[str, int]]:
         r = requests.get(f"http://localhost:{self.port}/breakpoints/set/{hex(address)}")
         if r.status_code == 200:
             result = process_breakpoint_result(r.json())
@@ -32,7 +32,7 @@ class EmulatorConnector():
         else:
             raise Exception(f"Failed to set breakpoint: {r.status_code}")
 
-    def clear_breakpoint(self, address) -> list[dict[str, int | bool]]:
+    def clear_breakpoint(self, address: int) -> list[dict[str, int | bool]]:
         r = requests.get(f"http://localhost:{self.port}/breakpoints/clear/{hex(address)}")
         if r.status_code == 200:
             result = process_breakpoint_result(r.json())

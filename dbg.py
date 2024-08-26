@@ -4,7 +4,7 @@ from rich.style import Style
 from rich.theme import Theme
 from textual import on
 from textual.app import App, ComposeResult
-from textual.containers import Grid
+from textual.containers import Grid, VerticalScroll, Horizontal
 from textual.screen import Screen, ModalScreen
 from textual.widget import Widget
 from textual.scroll_view import ScrollView
@@ -218,6 +218,7 @@ class GoToAddressScreen(ModalScreen):
                 Input(placeholder="Address", id="address_input", restrict=r"[a-fA-F0-9]{1,16}"),
                 id = "goto_address_dialog"
                 )
+
     @on(Input.Submitted)
     def jump(self, event: Input.Submitted):
         try:
@@ -230,6 +231,42 @@ class GoToAddressScreen(ModalScreen):
     def on_key(self, key: Key):
         if key.key == "escape":
             self.app.pop_screen()
+
+class BreakpointLine(Horizontal):
+    def __init__(self, address):
+        super().__init__()
+        self.address = address
+
+    def compose(self) -> ComposeResult:
+        yield Button("X", classes="delete_bp_button", variant="error", id=f"delete_bp_{hex(self.address)}")
+        yield Label(" 0x{:016X}".format(self.address))
+
+class BreakpointsScreen(ModalScreen):
+    def compose(self) -> ComposeResult:
+        breakpoint_lines = []
+        for bp in emu.breakpoints():
+            breakpoint_lines.append(BreakpointLine(bp["address"]))
+        yield VerticalScroll(
+                Input(placeholder="Add New", id="address_input", restrict=r"[a-fA-F0-9]{1,16}"),
+                *breakpoint_lines,
+                id = "breakpoints_dialog"
+                )
+
+    def on_button_pressed(self, pressed: Button.Pressed):
+        if pressed.button.id is not None and pressed.button.id.startswith("delete_bp_"):
+            addr = int(pressed.button.id[10:], 16)
+            emu.clear_breakpoint(addr)
+            self.refresh(recompose=True)
+
+    @on(Input.Submitted)
+    def on_input_submitted(self, event: Input.Submitted):
+        emu.set_breakpoint(int(event.value, 16))
+        self.refresh(recompose=True)
+
+    def on_key(self, key: Key):
+        if key.key == "escape":
+            self.app.pop_screen()
+
 
 class DebuggerApp(App):
     CSS_PATH = "dbg.tcss"
@@ -283,7 +320,7 @@ class DebuggerApp(App):
             self.notify(f"Failed to break/continue: {e}")
 
     def action_breakpoints(self) -> None:
-        pass # Todo
+        self.push_screen(BreakpointsScreen())
 
     def action_go_to_address(self) -> None:
         self.push_screen(GoToAddressScreen(self.query_one(Disassembly).scroll_to_address_if_needed))

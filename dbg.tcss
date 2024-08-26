@@ -50,6 +50,10 @@ GoToAddressScreen {
   align: center middle;
 }
 
+BreakpointsScreen {
+  align: center middle;
+}
+
 #goto_address_dialog {
     grid-size: 1;
     grid-gutter: 1 2;
@@ -59,4 +63,37 @@ GoToAddressScreen {
     height: 11;
     border: thick $background 80%;
     background: $surface;
+}
+
+#breakpoints_dialog {
+    padding: 0 1;
+
+    width: 50%;
+    height: 50%;
+    min-width: 60;
+    min-height: 10;
+
+    border: thick $background 80%;
+    background: $surface;
+}
+
+#breakpoints_grid {
+    grid-size: 2;
+    grid-gutter: 1 2;
+    grid-rows: 2;
+}
+
+BreakpointLine {
+  height: 2;
+  border-bottom: solid #a89984;
+}
+
+.delete_bp_button {
+  border: none;
+  height: 1;
+  min-width: 0;
+}
+
+#address_input {
+  margin-bottom: 1;
 }
