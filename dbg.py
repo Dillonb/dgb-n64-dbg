@@ -35,7 +35,7 @@ class Registers(Widget):
             if name in self.registers.keys():
 
                 text += f"[gruv_green]{name}[/]: "
-                if self.state["running"]:
+                if "running" in self.state and self.state["running"]:
                     text += "[i]Emulator running[/]\n"
                 else:
                     text += f"{hex(self.registers[name])}\n"
@@ -44,7 +44,7 @@ class Registers(Widget):
         for key, value in self.registers.items():
             if key not in self.gprs and key not in self.hidden:
                 text += f"[gruv_green]{key}[/]: "
-                if self.state["running"]:
+                if "running" in self.state and self.state["running"]:
                     text += "[i]Emulator running[/]\n"
                 else:
                     text += f"{hex(value)}\n"
@@ -113,7 +113,7 @@ class Disassembly(ScrollView):
         scroll_x, scroll_y = self.scroll_offset
         address = (y + scroll_y) << 2
 
-        active = address == (self.pc & self.addr_mask) and not self.state["running"]
+        active = address == (self.pc & self.addr_mask) and ("running" in self.state and not self.state["running"])
         active_text = "active" if active else "inactive"
 
         line_style = self.get_component_rich_style(f"{active_text}-line").background_style
@@ -160,7 +160,7 @@ class Disassembly(ScrollView):
         segments.append(Segment(disasm_args_text.ljust(25), disasm_args_style))
 
         reg_values = []
-        if not self.state["running"]:
+        if "running" in self.state and not self.state["running"]:
             for reg in disasm_args_text.split(", "):
                 for reg_name in self.registers.keys():
                     if f"${reg_name}" in reg:
