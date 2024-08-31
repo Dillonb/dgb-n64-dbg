@@ -109,6 +109,49 @@ class Disassembly(ScrollView):
         else:
             emu.set_breakpoint(address)
 
+    def fix_op_str(self, mnemonic, op_str):
+        mappings = {
+            "$zero,": "$Index",        # 0
+            "$at,":   "$Random",       # 1
+            "$v0,":   "$EntryLo0",     # 2
+            "$v1,":   "$EntryLo1",     # 3
+            "$a0,":   "$Context",      # 4
+            "$a1,":   "$PageMask",     # 5
+            "$a2,":   "$Wired",        # 6
+            "$a3,":   "$7",            # 7
+            "$t0,":   "$BadVAddr",     # 8
+            "$t1,":   "$Count",        # 9
+            "$t2,":   "$EntryHi",      # 10
+            "$t3,":   "$Compare",      # 11
+            "$t4,":   "$Status",       # 12
+            "$t5,":   "$Cause",        # 13
+            "$t6,":   "$EPC",          # 14
+            "$t7,":   "$PRId",         # 15
+            "$s0,":   "$Config",       # 16
+            "$s1,":   "$LLAddr",       # 17
+            "$s2,":   "$WatchLo",      # 18
+            "$s3,":   "$WatchHi",      # 19
+            "$s4,":   "$XContext",     # 20
+            "$s5,":   "$21",           # 21
+            "$s6,":   "$22",           # 22
+            "$s7,":   "$23",           # 23
+            "$t8,":   "$24",           # 24
+            "$t9,":   "$25",           # 25
+            "$k0,":   "$ParityError",  # 26
+            "$k1,":   "$CacheError",   # 27
+            "$gp,":   "$TagLo",        # 28
+            "$sp,":   "$TagHi",        # 29
+            "$fp,":   "$error_epc",    # 30
+            "$ra,":    "$31"           # 31
+        }
+
+        if mnemonic in ("mtc0", "dmtc0", "mfc0", "dmfc0"):
+            s = op_str.split(" ")
+            for orig, replace in mappings.items():
+                s[1] = s[1].replace(orig, replace)
+            op_str = f"{s[0]} {s[1]}"
+        return op_str
+
     def render_line(self, y: int) -> Strip:
         scroll_x, scroll_y = self.scroll_offset
         address = (y + scroll_y) << 2
@@ -142,7 +185,8 @@ class Disassembly(ScrollView):
             instr_bytes = instr.to_bytes(4, "big")
             disasm = []
             for i in md.disasm(instr_bytes, address & self.addr_mask):
-                disasm.append([f"{i.mnemonic}", f"{i.op_str}"])
+                op_str = self.fix_op_str(i.mnemonic, i.op_str)
+                disasm.append([f"{i.mnemonic}", f"{op_str}"])
 
             iw_text = "{:08X}".format(instr)
             if len(disasm) != 1:
